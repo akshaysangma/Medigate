@@ -44,16 +44,6 @@
             android:layout_width="300dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="40dp"
-            android:hint="Username"
-            android:layout_gravity="center_horizontal"
-            android:id="@+id/username"
-            android:inputType="text"/>
-
-        <EditText
-            android:background="@drawable/edittextstyle"
-            android:layout_width="300dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="40dp"
             android:hint="Password"
             android:layout_gravity="center_horizontal"
             android:id="@+id/password"

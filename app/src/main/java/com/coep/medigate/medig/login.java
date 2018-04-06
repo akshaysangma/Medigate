@@ -1,44 +1,60 @@
 package com.coep.medigate.medig;
 
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
-import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.Task;
+import java.io.BufferedReader;
+
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLEncoder;
+
 
 
   /*
         To Do List
-        1.Validation (Comfirmation Mail to Verify Account)
-        2.Auto Login after First time on Launch (pre-stored auto validate user table at server on open ??)
-        3.Social Login (or Just Google Account) ( how to validate social login ??)
-        4.Create a Activity to redirect after successful registration when user can input pre-medical data (Form)
-        5.DataBase for user login in server
-        6.Color Theme
+     M  1.Validation (Comfirmation Mail to Verify Account)
+     ME?  2.Auto Login after First time on Launch (pre-stored auto validate user table at server on open ??)
+     ME?   3.Social Login (or Just Google Account) ( how to validate social login ??)
+     P   4.Create a Activity to redirect after successful registration when user can input pre-medical data (Form)
+     M  5.DataBase for user login in server
+     M  6.Color Theme
         7.https://developers.google.com/identity/sign-in/android/sign-in
         8.https://developers.google.com/identity/sign-in/android/backend-auth
         */
 
 
 public class login extends AppCompatActivity {
+
     Button signInButton;
     GoogleSignInClient mGoogleSignInClient;
     static final int RC_SIGN_IN = 9000;
+    String Email = "";
+    String Password;
+    EditText email,password;
+    Button signup;
     private static final String TAG = "login";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+        email = (EditText) findViewById(R.id.email);
+        password = (EditText)findViewById(R.id.password);
         // Configure sign-in to request the user's ID, email address, and basic
         // profile. ID and basic profile are included in DEFAULT_SIGN_IN.
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -48,6 +64,42 @@ public class login extends AppCompatActivity {
         // Build a GoogleSignInClient with the options specified by gso.
         mGoogleSignInClient = GoogleSignIn.getClient(login.this, gso);
         signInButton = (Button) findViewById(R.id.sign_in_button);
+
+        signup = (Button) findViewById(R.id.signupbutton);
+
+
+        signup.setOnClickListener(new View.OnClickListener() {
+            @Override
+
+
+            public void onClick(View v) {
+                if (Email.equals("")){
+                    if(email.getText().toString().trim().isEmpty()){
+                        email.setError("This Cannot be Empty");
+                    }
+                    else {
+                        Email = email.getText().toString();
+                    }
+                }
+                if(password.getText().toString().trim().isEmpty()){
+                    password.setError("This Cannot be Empty");
+                }
+                else {
+                    Password = password.getText().toString();
+                    Intent Form = new Intent(login.this, Form.class);
+                    Form.putExtra("email",Email);
+                    Form.putExtra("password",Password);
+                    startActivity(Form);
+                    finish();
+                }
+            }
+        });
+
+
+
+
+
+
 
         signInButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -85,9 +137,10 @@ public class login extends AppCompatActivity {
                 If you need to pass the currently signed-in user to a backend server,
                 send the ID token to your backend server and validate the token on the server.*/
 
-            Toast.makeText(login.this,"Logged As "+ account.getEmail(),Toast.LENGTH_SHORT).show();
-            Intent Form = new Intent(login.this,Form.class);
-            startActivity(Form);
+            Email =  account.getEmail().toString();
+            email.setVisibility(View.GONE);
+
+
 
         } catch (ApiException e) {
             // The ApiException status code indicates the detailed failure reason.
@@ -106,6 +159,5 @@ public class login extends AppCompatActivity {
             startActivity(Medigate);
         }
     }
-
 
 }
