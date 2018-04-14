@@ -1,7 +1,9 @@
 package com.coep.medigate.medig;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -46,7 +48,7 @@ public class login extends AppCompatActivity {
     static final int RC_SIGN_IN = 9000;
     String Email = "";
     String Password;
-    EditText email,password;
+    EditText email,password,repass;
     Button signup;
     private static final String TAG = "login";
     @Override
@@ -55,6 +57,7 @@ public class login extends AppCompatActivity {
         setContentView(R.layout.activity_login);
         email = (EditText) findViewById(R.id.email);
         password = (EditText)findViewById(R.id.password);
+        repass = (EditText)findViewById(R.id.repass);
         // Configure sign-in to request the user's ID, email address, and basic
         // profile. ID and basic profile are included in DEFAULT_SIGN_IN.
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -86,11 +89,18 @@ public class login extends AppCompatActivity {
                 }
                 else {
                     Password = password.getText().toString();
-                    Intent Form = new Intent(login.this, Form.class);
-                    Form.putExtra("email",Email);
-                    Form.putExtra("password",Password);
-                    startActivity(Form);
-                    finish();
+                    if(Password.equals(repass.getText().toString())){
+                        Intent Form = new Intent(login.this, Form.class);
+                        Form.putExtra("email",Email);
+                        Form.putExtra("password",Password);
+                        startActivity(Form);
+                        finish();
+                    }
+                    else{
+                        password.setText("");
+                        repass.setText("");
+                        repass.setError("Doesnt Match");
+                    }
                 }
             }
         });
@@ -154,8 +164,11 @@ public class login extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
-        if(account !=null) {
-            Intent Medigate = new Intent(login.this, Medigate.class);
+        final SharedPreferences mSharedPreference= PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        String User=(mSharedPreference.getString("User", "NoUser"));
+
+        if(account !=null || !User.equals("NoUser")) {
+            Intent Medigate = new Intent(login.this, UserView.class);
             startActivity(Medigate);
         }
     }

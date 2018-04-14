@@ -4,7 +4,6 @@ import android.app.Dialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
@@ -26,55 +25,55 @@ import com.jjoe64.graphview.Viewport;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
-import java.io.BufferedReader;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.net.URL;
-import java.net.URLConnection;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-public class Medigate extends AppCompatActivity {
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
+public class UserView extends AppCompatActivity {
     String User;
-    String TempURL = "http://192.168.137.119/medigate/user_temp_entry.php";
-    String PulseURL = "http://192.168.137.119/medigate/user_pulse_entry.php";
-    private static final String TAG = "Form";
-    TextView pulse , temp;
+    final String invervalURL = "http://192.168.43.223:8000/android_api/sensor_data/";
+    final String ContURL = "http://192.168.43.223:8000/android_api/contdata/";
+    TextView pulse, temp;
+    String Pulse,Temp;
     Button bt;
-    BluetoothAdapter mBluetoothAdapter;
-    private final static int REQUEST_ENABLE_BT = 1;
-
     Handler bluetoothIn;
-
     private BluetoothSocket btSocket = null;
-
-    private ConnectedThread mConnectedThread;
+    private UserView.ConnectedThread mConnectedThread;
     // SPP UUID service - this should work for most devices
     private static final UUID BTMODULEUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     // String for MAC address
     private static String address;
+    int Pulsevalue;
 
 
     //GRAPH RELATED STUFFS 07/03/2018
 
     private LineGraphSeries<DataPoint> series;
     private int lastX = 0;
+    BluetoothAdapter mBluetoothAdapter;
+    private final static int REQUEST_ENABLE_BT = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_medigate);
+        setContentView(R.layout.activity_user_view);
         bt = (Button) findViewById(R.id.bt);
         temp = (TextView) findViewById(R.id.temp);
         pulse = (TextView) findViewById(R.id.pulse);
 
-
-        //Graph related  07/03/2018
+        //Initilizing Graph
         GraphView graph = (GraphView) findViewById(R.id.graph);
         series = new LineGraphSeries<DataPoint>();
         graph.addSeries(series);
@@ -87,21 +86,17 @@ public class Medigate extends AppCompatActivity {
         viewport.setMaxY(500);
         viewport.setScrollable(true);
 
+
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        final SharedPreferences mSharedPreference = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
+        User = (mSharedPreference.getString("User", "NoUser"));
 
-
-        final SharedPreferences mSharedPreference= PreferenceManager.getDefaultSharedPreferences(getBaseContext());
-        User=(mSharedPreference.getString("User", "NoUser"));
-
-        if(User.equals("NoUser")){
-            Toast.makeText(Medigate.this,"Login Failed !Check Your Network"+User,Toast.LENGTH_LONG).show();
+        if (User.equals("NoUser")) {
+            Toast.makeText(UserView.this, "Login Failed !Check Your Network" + User, Toast.LENGTH_LONG).show();
             finish();
 
-        }
-        else{
-            Toast.makeText(Medigate.this,"Logged in As "+User,Toast.LENGTH_LONG).show();
-            mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-
+        } else {
+            Toast.makeText(UserView.this, "Logged in As " + User, Toast.LENGTH_LONG).show();
             if (mBluetoothAdapter == null) {
                 Toast.makeText(getApplicationContext(), " Device Not Supported ", Toast.LENGTH_LONG).show();
             } else {
@@ -120,20 +115,18 @@ public class Medigate extends AppCompatActivity {
                                 s.add(btl.getName());
                                 address = btl.getAddress().toString();
                             }
-                            final Dialog dialog = new Dialog(Medigate.this);
+                            final Dialog dialog = new Dialog(UserView.this);
                             dialog.setContentView(R.layout.bt_list);
                             dialog.setTitle("Paired Medigate Devices");
                             final ListView btlist = (ListView) dialog.findViewById(R.id.List);
-                            ArrayAdapter<String> adapter = new ArrayAdapter<String>(Medigate.this, android.R.layout.simple_list_item_1, s);
+                            ArrayAdapter<String> adapter = new ArrayAdapter<String>(UserView.this, android.R.layout.simple_list_item_1, s);
                             btlist.setAdapter(adapter);
                             dialog.show();
-
-
                             btlist.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                                 @Override
                                 public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
 
-                                    Toast.makeText(Medigate.this, "Connected to (" + address + ") " + btlist.getItemAtPosition(i), Toast.LENGTH_LONG).show();
+                                    Toast.makeText(UserView.this, "Connected to (" + address + ") " + btlist.getItemAtPosition(i), Toast.LENGTH_LONG).show();
                                     dialog.dismiss();
                                     BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
 
@@ -152,62 +145,54 @@ public class Medigate extends AppCompatActivity {
                                             //insert code to deal with this
                                         }
                                     }
-                                    mConnectedThread = new ConnectedThread(btSocket);
+                                    mConnectedThread = new UserView.ConnectedThread(btSocket);
                                     mConnectedThread.start();
-                                    ;
-                                    //code starts here
                                     bluetoothIn = new Handler() {
                                         String buffer = "";
+
                                         public void handleMessage(android.os.Message msg) {
-                                            String newstr = "";
                                             String strIncom = null;
                                             strIncom = buffer + (String) msg.obj;
                                             StringBuilder sb = new StringBuilder();
                                             StringBuilder sb2 = new StringBuilder(strIncom);
 
-                                            if(strIncom.charAt(strIncom.length() - 1) != '\n') {
+                                            if (strIncom.charAt(strIncom.length() - 1) != '\n') {
                                                 int count = strIncom.length() - 1;
                                                 char ch;
-                                                while ((count >=0 && (ch = strIncom.charAt(count)) != '\n')) {
+                                                while ((count >= 0 && (ch = strIncom.charAt(count)) != '\n')) {
                                                     sb2.deleteCharAt(count);
                                                     sb.append(ch);
                                                     count--;
                                                 }
                                                 sb.reverse();
                                                 buffer = sb.toString();
-                                            }
-                                            else {
+                                            } else {
                                                 buffer = "";
                                             }
                                             strIncom = sb2.toString();
-                                            Log.d(TAG, strIncom + " strIncom\n");               // extract string
-                                            //Log.d(TAG, strIncom);
                                             String values[] = strIncom.split("\n");
-                                            for(String str : values) {
+                                            for (String str : values) {
                                                 try {
 
                                                     if (str.charAt(0) == 'P') {
-                                                        // Toast.makeText(MainActivity.this, "P =" +  str.substring(1), Toast.LENGTH_SHORT).show();
-                                                        pulse.setText("Pulse Rate ["+str.substring(1)+"]");
-                                                        InsertData(PulseURL,str.substring(1));
+
+                                                        pulse.setText("Pulse Rate [" + str.substring(1) + "]");
+                                                        Pulse = str.substring(1).toString();
 
                                                     }
-                                                    if(str.charAt(0) == 'T'){
-                                                        // Toast.makeText(MainActivity.this, "T =" +  str.substring(1), Toast.LENGTH_SHORT).show();
-                                                        temp.setText("Temperature ["+str.substring(1)+"°F]");
-                                                        String POP = str.substring(1);
-                                                        Log.v(TAG,POP);
-                                                        InsertData(TempURL,str.substring(1));
+                                                    if (str.charAt(0) == 'T') {
 
-                                                    }
-                                                    else {
-                                                        int pulse = Integer.parseInt(str);
-                                                        series.appendData(new DataPoint(lastX++, pulse), true, 100);
+                                                        temp.setText("Temperature [" + str.substring(1) + "°F]");
+                                                        Temp = str.substring(1).toString();
+                                                        InsertData(invervalURL,0);
 
+                                                    } else {
+                                                        Pulsevalue = Integer.parseInt(str);
+                                                        series.appendData(new DataPoint(lastX++, Pulsevalue), true, 100);
+                                                        InsertData(ContURL,1);
                                                     }
 
-                                                }
-                                                catch (Exception e) {
+                                                } catch (Exception e) {
                                                     e.printStackTrace();
                                                 }
                                             }
@@ -217,22 +202,24 @@ public class Medigate extends AppCompatActivity {
                             });
                         }
                     }
-//            });
                 });
 
 
             }
 
+
         }
 
+
     }
+
     private BluetoothSocket createBluetoothSocket(BluetoothDevice device) throws IOException {
 
-        return  device.createRfcommSocketToServiceRecord(BTMODULEUUID);
+        return device.createRfcommSocketToServiceRecord(BTMODULEUUID);
         //creates secure outgoing connecetion with BT device using UUID
     }
 
-    private class ConnectedThread extends Thread {
+    public class ConnectedThread extends Thread {
         private final InputStream In;
 
 
@@ -267,59 +254,61 @@ public class Medigate extends AppCompatActivity {
             }
         }
     }
+
     @Override
     protected void onStop() {
         // call the superclass method first
-        super.onStop();        finish();
-        System.exit(1);}
+        super.onStop();
+        finish();
+        System.exit(1);
+    }
 
-    public void InsertData(final String ServerURL,final String Enter){
-
+    public void InsertData(final String Url,final int type){
 
         class SendPostReqAsyncTask extends AsyncTask<String, Void, String> {
             @Override
             protected String doInBackground(String... params) {
+                JSONObject jsonParam = new JSONObject();
                 try {
-
-                    String data = URLEncoder.encode("entry", "UTF-8") + "=" +
-                            URLEncoder.encode(Enter ,"UTF-8");
-                    data +="&"+URLEncoder.encode("username", "UTF-8") + "=" +
-                            URLEncoder.encode(User ,"UTF-8");
-
-                    Log.v(TAG,data);
-                    URL url = new URL(ServerURL);
-                    URLConnection conn = url.openConnection();
-
-                    conn.setDoOutput(true);
-                    OutputStreamWriter wr = new OutputStreamWriter(conn.getOutputStream());
-
-                    wr.write(data);
-                    wr.flush();
-
-                    BufferedReader reader = new BufferedReader(new
-                            InputStreamReader(conn.getInputStream()));
-
-                    StringBuilder sb = new StringBuilder();
-                    String line = null;
-
-                    // Read Server Response
-                    while ((line = reader.readLine()) != null) {
-                        sb.append(line);
-                        break;
+                    if(type == 0){
+                    jsonParam.put("user", User);
+                    jsonParam.put("temp", Temp);
+                    jsonParam.put("pulse", Pulse);
+                    }
+                    else
+                    {
+                    jsonParam.put("user", User);
+                    jsonParam.put("pulsevalue",""+Pulsevalue);
                     }
 
-                    return sb.toString();
-                } catch (Exception e) {
-                    return new String("Exception: " + e.getMessage());
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+                try {
+                    OkHttpClient client = new OkHttpClient();
+                    MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+                    RequestBody body = RequestBody.create(JSON, jsonParam.toString());
+                    Request request = new Request.Builder()
+                            .url(Url)
+                            .post(body)
+                            .build();
+                    Response response = null;
+                    response = client.newCall(request).execute();
+                    String resStr = response.body().string();
+                    return resStr;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    return ""+e;
                 }
 
             }
+
+
             @Override
             protected void onPostExecute(String result) {
                 super.onPostExecute(result);
-                Log.v(TAG, result);
-                Toast.makeText(Medigate.this, "" + result, Toast.LENGTH_LONG).show();
-
+               Toast.makeText(UserView.this, "" + result, Toast.LENGTH_LONG).show();
             }
         }
 
@@ -327,10 +316,12 @@ public class Medigate extends AppCompatActivity {
 
         sendPostReqAsyncTask.execute();
     }
+
+
+
+
+
+
+
 }
-
-
-
-
-
 

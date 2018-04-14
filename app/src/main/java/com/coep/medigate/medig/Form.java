@@ -1,47 +1,61 @@
 package com.coep.medigate.medig;
 
-import android.content.Context;
+import java.io.IOException;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.opengl.GLException;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.net.URL;
-import java.net.URLConnection;
-import java.net.URLEncoder;
+import org.json.JSONException;
+import org.json.JSONObject;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.Locale;
 
 public class Form extends AppCompatActivity {
 
-    public static final String MyPREFERENCES = "MyPrefs" ;
-    public static final String User = "User";
-
-    SharedPreferences sharedpreferences;
+    final String Post_info = "http://192.168.43.223:8000/android_api/post_user/";
+    final String invervalURL = "http://192.168.43.223:8000/android_api/docinfo/";
 
 
 
-    String ServerURL = "http://192.168.137.119/medigate/newuser_entry.php";
-    EditText username,name,dateofbirth,age,gender,city,phone;
+    EditText username,name,dateofbirth,city,phone,docid;
     RadioButton yesD,noD,yesA,noA;
-    String Email,Password,Username,Name,DOB,Age,Gender,City,Phone;
+    String Email,Password,Username,Name,DOB,Age="",Gender,City,Phone,Doc = "N/A";
     TextView tex;
+    Spinner bloodgrp,gender;
     Button save;
+    RadioGroup join;
+    String BloodGrp;
     String DStatus = "0",AStatus = "0";
     private static final String TAG = "MyActivity";
+    private static final String[]blood = {"AB+", "A+", "O+" , "B+","AB-", "A-", "O-" , "B-","Unknown"};
+    private static final String[]gen= {"Female", "Male", "Others"};
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        final Calendar myCalendar = Calendar.getInstance();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_form);
         Bundle extras = getIntent().getExtras();
@@ -49,8 +63,8 @@ public class Form extends AppCompatActivity {
         username =(EditText)findViewById(R.id.user);
         name =(EditText)findViewById(R.id.name);
         dateofbirth =(EditText)findViewById(R.id.date);
-        age =(EditText)findViewById(R.id.age);
-        gender =(EditText)findViewById(R.id.gender);
+        bloodgrp = (Spinner) findViewById(R.id.bloodgrp);
+        gender =(Spinner)findViewById(R.id.gender);
         city =(EditText)findViewById(R.id.city);
         phone =(EditText)findViewById(R.id.phone);
         save = (Button)findViewById(R.id.Save);
@@ -58,12 +72,142 @@ public class Form extends AppCompatActivity {
         noD = (RadioButton) findViewById(R.id.noD);
         yesA = (RadioButton) findViewById(R.id.yesA);
         noA = (RadioButton) findViewById(R.id.noA);
+        join = (RadioGroup)findViewById(R.id.join);
+        docid =(EditText)findViewById(R.id.docid);
+
+        ArrayAdapter<String> GenAdapter = new ArrayAdapter<String>(this,android.R.layout.simple_spinner_item, gen);
+        GenAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        gender.setAdapter(GenAdapter);
+
+        ArrayAdapter<String> bloodAdapter = new ArrayAdapter<String>(this,android.R.layout.simple_spinner_item, blood);
+        bloodAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        bloodgrp.setAdapter(bloodAdapter);
+
+
         final String TAG = "MyActivity";
-        sharedpreferences = getSharedPreferences(MyPREFERENCES, Context.MODE_PRIVATE);
 
 
-         Email = extras.getString("email");
+        gender.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Gender = parent.getItemAtPosition(position).toString();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                 Gender = "Female";
+            }
+        });
+
+
+        final DatePickerDialog.OnDateSetListener DateOFbirth = new DatePickerDialog.OnDateSetListener() {
+            @Override
+            public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
+                Calendar today = Calendar.getInstance();
+                Calendar birthday;
+                myCalendar.set(Calendar.YEAR, year);
+                myCalendar.set(Calendar.MONTH, month);
+                myCalendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+                dateofbirth.setText(sdf.format(myCalendar.getTime()));
+
+                birthday = new GregorianCalendar(year, month, dayOfMonth);
+                int yourAge = today.get(Calendar.YEAR) - birthday.get(Calendar.YEAR);
+                birthday.add(Calendar.YEAR, yourAge);
+                if (today.before(birthday)) {
+                    yourAge--;
+                }
+
+                Age += yourAge;
+
+               }
+        };
+
+            dateofbirth.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    new DatePickerDialog(Form.this, DateOFbirth, myCalendar
+                            .get(Calendar.YEAR), myCalendar.get(Calendar.MONTH),
+                            myCalendar.get(Calendar.DAY_OF_MONTH)).show();
+                }
+            });
+
+
+
+
+
+
+
+
+        bloodgrp.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                BloodGrp = parent.getItemAtPosition(position).toString();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                BloodGrp = "AB+";
+            }
+        });
+
+
+
+
+
+
+
+
+
+
+        Email = extras.getString("email");
          Password = extras.getString("password");
+
+       yesD.setOnClickListener(new View.OnClickListener() {
+           @Override
+           public void onClick(View v) {
+
+                   tex.setVisibility(View.VISIBLE);
+                   join.setVisibility(View.VISIBLE);
+                   DStatus = "1";
+                   noA.setChecked(true);
+
+           }
+       });
+
+        noD.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                    tex.setVisibility(View.GONE);
+                    join.setVisibility(View.GONE);
+                    DStatus = "0";
+                    AStatus = "0";
+
+            }
+        });
+
+        yesA.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                    docid.setVisibility(View.VISIBLE);
+                    AStatus = "1";
+
+            }
+        });
+
+        noA.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                   docid.setVisibility(View.GONE);
+                    AStatus = "0";
+                    Doc = "N/A";
+
+            }
+        });
+
 
 
 
@@ -96,133 +240,110 @@ public class Form extends AppCompatActivity {
                 else {
                     DOB = dateofbirth.getText().toString();
                 }
-                if(age.getText().toString().trim().isEmpty()){
-                    age.setError("This Cannot be Empty");
-                }
-                else {
-                    Age = age.getText().toString();
-                }
+
+
                 if(city.getText().toString().trim().isEmpty()){
                     city.setError("This Cannot be Empty");
                 }
                 else {
                     City = city.getText().toString();
                 }
-                if(gender.getText().toString().trim().isEmpty()){
-                    gender.setError("This Cannot be Empty");
-                }
-                else {
-                    Gender = gender.getText().toString();
-                }
+
                 if(phone.getText().toString().trim().isEmpty()){
                     phone.setError("This Cannot be Empty");
                 }
                 else {
                     Phone = phone.getText().toString();
                 }
-                if(yesD.isChecked()){
-                    DStatus="1";
-                    if(yesA.isChecked()){
-                        AStatus = "1";
+                if (AStatus.equals("1")){
+
+                    if(docid.getText().toString().trim().isEmpty()){
+                        docid.setError("This Cannot be Empty");
+
                     }
-                    else{
-                        AStatus = "0";
+                        else{
+                            Doc = docid.getText().toString();
                     }
-                }
-                else{
-                    DStatus="0";
-                }
 
-
-
-
-           InsertData();
-                Intent Medi = new Intent(Form.this,Medigate.class);
+                InsertData();
+                Intent Medi = new Intent(Form.this,UserView.class);
                 startActivity(Medi);
                 finish();
+
+
+                }
+
 
 
             }
 
         });
+
 }
     public void InsertData(){
 
         class SendPostReqAsyncTask extends AsyncTask<String, Void, String> {
             @Override
             protected String doInBackground(String... params) {
+                JSONObject jsonParam = new JSONObject();
+                JSONObject doc = new JSONObject();
                 try {
+                    jsonParam.put("username", Username);
+                    jsonParam.put("password", Password);
+                    jsonParam.put("email", Email);
+                    jsonParam.put("name", Name);
+                    jsonParam.put("dob", DOB);
+                    jsonParam.put("age", Age);
+                    jsonParam.put("gender", Gender);
+                    jsonParam.put("bloodgrp", BloodGrp);
+                    jsonParam.put("phone", Phone);
+                    jsonParam.put("city", City);
+                    jsonParam.put("doctor", DStatus);
+                    jsonParam.put("service", AStatus);
+                    doc.put("user", Username);
+                    doc.put("docid",Doc);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
 
-                    String data = URLEncoder.encode("username", "UTF-8") + "=" +
-                            URLEncoder.encode(Username, "UTF-8");
-                    data += "&" + URLEncoder.encode("email", "UTF-8") + "=" +
-                            URLEncoder.encode(Email, "UTF-8");
-                    data += "&" + URLEncoder.encode("password", "UTF-8") + "=" +
-                            URLEncoder.encode(Password, "UTF-8");
-                    data += "&" + URLEncoder.encode("name", "UTF-8") + "=" +
-                            URLEncoder.encode(Name, "UTF-8");
-                    data += "&" + URLEncoder.encode("Date_of_birth", "UTF-8") + "=" +
-                            URLEncoder.encode(DOB, "UTF-8");
-                    data += "&" + URLEncoder.encode("Age", "UTF-8") + "=" +
-                            URLEncoder.encode(Age, "UTF-8");
-                    data += "&" + URLEncoder.encode("Gender", "UTF-8") + "=" +
-                            URLEncoder.encode(Gender, "UTF-8");
-                    data += "&" + URLEncoder.encode("City", "UTF-8") + "=" +
-                            URLEncoder.encode(City, "UTF-8");
-                    data += "&" + URLEncoder.encode("Phone_No", "UTF-8") + "=" +
-                            URLEncoder.encode(Phone, "UTF-8");
-                    data += "&" + URLEncoder.encode("doctor", "UTF-8") + "=" +
-                            URLEncoder.encode(DStatus, "UTF-8");
-                    data += "&" + URLEncoder.encode("avail", "UTF-8") + "=" +
-                            URLEncoder.encode(AStatus, "UTF-8");
+                try {
+                    OkHttpClient client = new OkHttpClient();
+                    MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+                    RequestBody body = RequestBody.create(JSON, jsonParam.toString());
+                    Request request = new Request.Builder()
+                            .url(Post_info)
+                            .post(body)
+                            .build();
+                    Response response = null;
+                    response = client.newCall(request).execute();
+                    String resStr = response.body().string();
 
 
-                    Log.v(TAG,data);
-                    URL url = new URL(ServerURL);
-                    URLConnection conn = url.openConnection();
+                    RequestBody docbody = RequestBody.create(JSON, doc.toString());
+                    Request docrequest = new Request.Builder()
+                            .url(invervalURL)
+                            .post(docbody)
+                            .build();
+                    Response docresponse = null;
+                    docresponse = client.newCall(docrequest).execute();
+                   String DresStr = docresponse.body().string();
 
-                    conn.setDoOutput(true);
-                    OutputStreamWriter wr = new OutputStreamWriter(conn.getOutputStream());
-
-                    wr.write(data);
-                    wr.flush();
-
-                    BufferedReader reader = new BufferedReader(new
-                            InputStreamReader(conn.getInputStream()));
-
-                    StringBuilder sb = new StringBuilder();
-                    String line = null;
-
-                    // Read Server Response
-                    while ((line = reader.readLine()) != null) {
-                        sb.append(line);
-                        break;
-                    }
-
-                    return sb.toString();
-                } catch (Exception e) {
-                    return new String("Exception: " + e.getMessage());
-                                    }
+                    return "U: "+resStr + " D: "+ DresStr ;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    return ""+e;
+                }
 
             }
+
+
             @Override
             protected void onPostExecute(String result) {
                 super.onPostExecute(result);
-                /*if(!result.equals("Saved")){
-                    Intent reopen = new Intent(Form.this,Form.class);
-                    reopen.putExtra("email",Email);
-                    reopen.putExtra("password",Password);
-                    startActivity(reopen);
-                    finish();
 
-                }
-                else {
-
-                    */
                     Log.v(TAG, result);
                     Toast.makeText(Form.this, "" + result, Toast.LENGTH_LONG).show();
-                //}
-                }
+                               }
         }
 
         SendPostReqAsyncTask sendPostReqAsyncTask = new SendPostReqAsyncTask();

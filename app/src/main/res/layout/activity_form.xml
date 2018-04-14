@@ -49,33 +49,60 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="5dp"
+                android:focusable="false"
+                android:editable="false"
                 android:hint="Date of Birth"
                 android:background="@drawable/edittextstyle"
-                android:inputType="date"
+                android:clickable="true"
                 android:id="@+id/date"
                 />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginLeft="10dp"
+                >
+            <TextView
+                android:layout_marginTop="10dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Blood Group"
+                android:textSize="18sp"/>
+            <Spinner
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                 android:layout_marginTop="10dp"
+                android:id="@+id/bloodgrp"
+                />
+            </LinearLayout>
+
+            <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+                <TextView
+                    android:layout_marginTop="10dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Gender"
+                    android:textSize="18sp"
+                    android:layout_marginLeft="10dp"/>
+
+                <Spinner
+                android:layout_height="wrap_content"
+                android:layout_width="match_parent"
+                android:layout_marginTop="10dp"
+                android:id="@+id/gender"
+                android:layout_marginLeft="42dp"    />
+
+
+            </LinearLayout>
 
             <EditText
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
-                android:hint="Age"
-                android:inputType="number"
-                android:background="@drawable/edittextstyle"
-                android:id="@+id/age"/>
-
-            <EditText
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
-                android:hint="Gender"
-                android:background="@drawable/edittextstyle"
-                android:id="@+id/gender"/>
-
-            <EditText
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="5dp"
+                android:layout_marginTop="10dp"
                 android:hint="City"
                 android:background="@drawable/edittextstyle"
                 android:id="@+id/city"
@@ -101,13 +128,15 @@
             <RadioGroup
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                >
 
                 <RadioButton
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginLeft="30dp"
                     android:text="Yes"
+
                     android:id="@+id/yesD"/>
 
                 <RadioButton
@@ -121,19 +150,22 @@
             </RadioGroup>
 
             <TextView
+                android:id="@+id/tetx"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="30dp"
                 android:layout_marginTop="10dp"
                 android:text="Do you want to Register as Doctor?"
                 android:textStyle="bold"
-                android:id="@+id/tetx"/>
+                android:visibility="gone" />
 
 
             <RadioGroup
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
+                android:visibility="gone"
+                android:id="@+id/join"
                 >
                 <RadioButton
                     android:layout_width="wrap_content"
@@ -154,14 +186,22 @@
                     />
             </RadioGroup>
 
+            <EditText
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:hint="Doctor No."
+                android:background="@drawable/edittextstyle"
+                android:id="@+id/docid"
+                android:visibility="gone"/>
 
             <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
                 android:layout_marginTop="5dp"
                 android:background="@drawable/signupbutton"
                 android:text="Submit"
+                android:layout_gravity="center_horizontal"
                 android:textColor="@color/white"
                 android:id="@+id/Save"/>
 
