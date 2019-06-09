@@ -11,4 +11,4 @@ This is a part of the  real time health monitoring system which will take contin
 * Doctor Subscription System
 * Emergency Alert to all Subscribed Doctors with GPS
 
-You can read the complete report here: 
+You can read the complete report here: https://github.com/akshaysangma/MedigateReport/blob/master/health_monitoring.pdf
